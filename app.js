@@ -1,4 +1,4 @@
-const SUPABASE_URL = "PASTE_PROJECT_URL_DI_SINI";
+const SUPABASE_URL = "https://cfxeiiwcawxbemhjybhc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_qo21jEafkf1rfKWLurbEsw_pDWiLZXy";
 
 const client = window.supabase.createClient(
