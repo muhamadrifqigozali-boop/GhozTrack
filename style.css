@@ -1,0 +1,104 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #222;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+.card {
+  background: white;
+  max-width: 900px;
+  margin: 15px auto;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.07);
+}
+
+.login-card {
+  max-width: 400px;
+  margin-top: 10vh;
+  text-align: center;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 15px;
+}
+
+button {
+  border: none;
+  background: #111;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button.secondary {
+  background: #ddd;
+  color: #111;
+}
+
+.logout {
+  width: auto;
+  padding: 10px 15px;
+}
+
+header {
+  max-width: 900px;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.summary div {
+  background: #f4f6f8;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.summary strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+.transaction {
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+}
+
+@media (max-width: 600px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  header {
+    align-items: flex-start;
+  }
+}
