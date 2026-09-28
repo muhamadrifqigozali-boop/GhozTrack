@@ -1,7 +1,7 @@
 // ================== CONFIG ==================
 const SUPABASE_URL = "https://cfxeiiwcawxbemhjybhc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_qo21jEafkf1rfKWLurbEsw_pDWiLZXy";
-const PIN = "200705"; // ← GANTI PIN LO
+const PIN = "200705";
 // ============================================
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -86,12 +86,11 @@ function showApp() {
   document.getElementById("pinPage").classList.add("d-none");
   document.getElementById("appPage").classList.remove("d-none");
   fillYearOptions();
-  
+
   const now = new Date();
   document.getElementById("newMonth").value = String(now.getMonth() + 1).padStart(2, "0");
   generatePeriodName();
 
-  // Set default tanggal hari ini
   const today = new Date().toISOString().split("T")[0];
   const dateInput = document.getElementById("txDate");
   if (dateInput) dateInput.value = today;
@@ -131,9 +130,9 @@ function generatePeriodName() {
 
   let name = "";
   if (parseInt(startDay) === 1) {
-    name = `${monthName} ${year}`;
+    name = monthName + " " + year;
   } else {
-    name = `${startDay} ${monthName} – ${endDay} ${monthName} ${year}`;
+    name = startDay + " " + monthName + " – " + endDay + " " + monthName + " " + year;
   }
   document.getElementById("monthName").value = name;
 }
@@ -141,7 +140,7 @@ function generatePeriodName() {
 // ========== NAV ==========
 function showView(name) {
   document.querySelectorAll(".view-section").forEach(v => v.classList.add("d-none"));
-  document.getElementById(`view-${name}`).classList.remove("d-none");
+  document.getElementById("view-" + name).classList.remove("d-none");
 
   document.querySelectorAll(".nav-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.view === name);
@@ -155,7 +154,7 @@ function showView(name) {
 async function loadMonths() {
   const { data } = await client.from("months").select("*").order("created_at", { ascending: false });
   const sel = document.getElementById("monthSelect");
-  sel.innerHTML = `<option value="">-- Pilih periode --</option>`;
+  sel.innerHTML = '<option value="">-- Pilih periode --</option>';
   (data || []).forEach(m => {
     const o = document.createElement("option");
     o.value = m.id;
@@ -213,7 +212,7 @@ async function usePreviousBalance() {
 
   document.getElementById("openingCash").value = Math.max(0, Math.round(cash));
   document.getElementById("openingNonCash").value = Math.max(0, Math.round(nonCash));
-  alert(`Sisa periode "${last.month}" sudah diisi:\nCash: ${formatRupiah(cash)}\nNon-Cash: ${formatRupiah(nonCash)}`);
+  alert("Sisa periode \"" + last.month + "\" sudah diisi:\nCash: " + formatRupiah(cash) + "\nNon-Cash: " + formatRupiah(nonCash));
 }
 
 async function selectMonth() {
@@ -236,7 +235,7 @@ async function selectMonth() {
 
 async function deleteMonth() {
   if (!currentMonth) return alert("Pilih periode dulu");
-  if (!confirm(`Hapus periode "${currentMonth.month}" beserta semua datanya?`)) return;
+  if (!confirm("Hapus periode \"" + currentMonth.month + "\" beserta semua datanya?")) return;
 
   await client.from("transactions").delete().eq("month_id", currentMonth.id);
   await client.from("goals").delete().eq("month_id", currentMonth.id);
@@ -295,7 +294,6 @@ async function addTransaction() {
 
   if (error) return alert(error.message);
 
-  // Reset form
   document.getElementById("txName").value = "";
   document.getElementById("txAmount").value = "";
   document.getElementById("txNote").value = "";
@@ -318,23 +316,17 @@ function renderTx(list, elId, limit = null) {
   const items = limit ? list.slice(0, limit) : list;
 
   if (!items.length) {
-    el.innerHTML = `<div class="empty-state">Belum ada transaksi ✨</div>`;
-function renderTx(list, elId, limit = null) {
-  const el = document.getElementById(elId);
-  const items = limit ? list.slice(0, limit) : list;
-
-  if (!items.length) {
-    el.innerHTML = `<div class="empty-state">Belum ada transaksi ✨</div>`;
+    el.innerHTML = '<div class="empty-state">Belum ada transaksi ✨</div>';
     return;
   }
 
   el.innerHTML = items.map(t => {
     const isExp = t.type === "expense";
     const isInc = t.type === "income";
-    
+
     let sign = "";
     let cls = "";
-    
+
     if (isExp) {
       sign = "-";
       cls = "expense";
@@ -364,21 +356,85 @@ function renderTx(list, elId, limit = null) {
 
     const fullMeta = tgl ? meta + " • " + tgl : meta;
 
-    return `
-      <div class="tx-item">
-        <div>
-          <div class="name">${escapeHtml(t.name)}</div>
-          <div class="meta">${fullMeta}</div>
-        </div>
-        <div>
-          <div class="amount \( {cls}"> \){sign}${formatRupiah(t.amount)}</div>
-          <div class="tx-actions mt-1">
-            <button onclick="openEdit(\( {t.id}, ' \){escapeHtml(t.name)}', ${t.amount})">Edit</button>
-            <button onclick="deleteTx(${t.id})">Hapus</button>
-          </div>
-        </div>
-      </div>
-    `;
+    return (
+      '<div class="tx-item">' +
+        '<div>' +
+          '<div class="name">' + escapeHtml(t.name) + '</div>' +
+          '<div class="meta">' + fullMeta + '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="amount ' + cls + '">' + sign + formatRupiah(t.amount) + '</div>' +
+          '<div class="tx-actions mt-1">' +
+            '<button onclick="openEdit(' + t.id + ', \'' + escapeHtml(t.name) + '\', ' + t.amount + ')">Edit</button>' +
+            '<button onclick="deleteTx(' + t.id + ')">Hapus</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join("");
+}
+
+// ========== GOALS ==========
+async function addGoal() {
+  if (!currentMonth) return alert("Pilih periode dulu");
+  const name = document.getElementById("goalName").value.trim();
+  const amount = Number(document.getElementById("goalAmount").value);
+  const type = document.getElementById("goalType").value;
+  if (!name || amount <= 0) return alert("Isi nama & jumlah");
+
+  const { error } = await client.from("goals").insert({
+    month_id: currentMonth.id,
+    name,
+    target_amount: amount,
+    type
+  });
+  if (error) return alert(error.message);
+
+  document.getElementById("goalName").value = "";
+  document.getElementById("goalAmount").value = "";
+  refreshAll();
+}
+
+async function getGoals() {
+  if (!currentMonth) return [];
+  const { data } = await client.from("goals").select("*")
+    .eq("month_id", currentMonth.id)
+    .order("created_at", { ascending: false });
+  return data || [];
+}
+
+function renderGoals(goals, txs, elId) {
+  const el = document.getElementById(elId);
+  if (!goals.length) {
+    el.innerHTML = '<div class="empty-state">Belum ada target 🎯</div>';
+    return;
+  }
+
+  const bal = calc(txs);
+  const totalExp = bal.expense;
+
+  el.innerHTML = goals.map(g => {
+    let current = g.type === "limit" ? totalExp : bal.total;
+    let pct = Math.min(100, (current / g.target_amount) * 100);
+    let barClass = g.type === "limit"
+      ? (current > g.target_amount ? "bg-danger" : "bg-primary")
+      : "bg-success";
+
+    return (
+      '<div class="goal-item">' +
+        '<div class="d-flex justify-content-between mb-1">' +
+          '<strong style="font-size:14px">' + escapeHtml(g.name) + '</strong>' +
+          '<small class="text-secondary">' + (g.type === "saving" ? "Nabung" : "Batas") + '</small>' +
+        '</div>' +
+        '<div class="progress mb-1">' +
+          '<div class="progress-bar ' + barClass + '" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="d-flex justify-content-between" style="font-size:12px;color:var(--bs-secondary-color)">' +
+          '<span>' + formatRupiah(current) + '</span>' +
+          '<span>dari ' + formatRupiah(g.target_amount) + '</span>' +
+        '</div>' +
+      '</div>'
+    );
   }).join("");
 }
 
