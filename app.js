@@ -319,23 +319,40 @@ function renderTx(list, elId, limit = null) {
 
   if (!items.length) {
     el.innerHTML = `<div class="empty-state">Belum ada transaksi ✨</div>`;
+function renderTx(list, elId, limit = null) {
+  const el = document.getElementById(elId);
+  const items = limit ? list.slice(0, limit) : list;
+
+  if (!items.length) {
+    el.innerHTML = `<div class="empty-state">Belum ada transaksi ✨</div>`;
     return;
   }
 
   el.innerHTML = items.map(t => {
     const isExp = t.type === "expense";
     const isInc = t.type === "income";
-    const sign = isExp ? "-" : (isInc ? "+" : "");
-    const cls = isExp ? "expense" : (isInc ? "income" : "");
+    
+    let sign = "";
+    let cls = "";
+    
+    if (isExp) {
+      sign = "-";
+      cls = "expense";
+    } else if (isInc) {
+      sign = "+";
+      cls = "income";
+    }
 
     let meta = "";
     if (t.type === "transfer") {
-      meta = `Transfer • ${t.account === "cash" ? "Cash" : "Non-Cash"} → ${t.transfer_to === "cash" ? "Cash" : "Non-Cash"}`;
+      const from = t.account === "cash" ? "Cash" : "Non-Cash";
+      const to = t.transfer_to === "cash" ? "Cash" : "Non-Cash";
+      meta = "Transfer • " + from + " → " + to;
     } else {
-      meta = `${t.category || "-"} • ${t.account === "cash" ? "Cash" : "Non-Cash"}`;
+      const acc = t.account === "cash" ? "Cash" : "Non-Cash";
+      meta = (t.category || "-") + " • " + acc;
     }
 
-    // Format tanggal
     let tgl = "";
     if (t.transaction_date) {
       tgl = new Date(t.transaction_date).toLocaleDateString("id-ID", {
@@ -345,11 +362,13 @@ function renderTx(list, elId, limit = null) {
       });
     }
 
+    const fullMeta = tgl ? meta + " • " + tgl : meta;
+
     return `
       <div class="tx-item">
         <div>
           <div class="name">${escapeHtml(t.name)}</div>
-          <div class="meta">\( {meta} \){tgl ? " • " + tgl : ""}</div>
+          <div class="meta">${fullMeta}</div>
         </div>
         <div>
           <div class="amount \( {cls}"> \){sign}${formatRupiah(t.amount)}</div>
@@ -360,63 +379,6 @@ function renderTx(list, elId, limit = null) {
         </div>
       </div>
     `;
-  }).join("");
-}
-
-// ========== GOALS ==========
-async function addGoal() {
-  if (!currentMonth) return alert("Pilih periode dulu");
-  const name = document.getElementById("goalName").value.trim();
-  const amount = Number(document.getElementById("goalAmount").value);
-  const type = document.getElementById("goalType").value;
-  if (!name || amount <= 0) return alert("Isi nama & jumlah");
-
-  const { error } = await client.from("goals").insert({
-    month_id: currentMonth.id, name, target_amount: amount, type
-  });
-  if (error) return alert(error.message);
-
-  document.getElementById("goalName").value = "";
-  document.getElementById("goalAmount").value = "";
-  refreshAll();
-}
-
-async function getGoals() {
-  if (!currentMonth) return [];
-  const { data } = await client.from("goals").select("*")
-    .eq("month_id", currentMonth.id).order("created_at", { ascending: false });
-  return data || [];
-}
-
-function renderGoals(goals, txs, elId) {
-  const el = document.getElementById(elId);
-  if (!goals.length) {
-    el.innerHTML = `<div class="empty-state">Belum ada target 🎯</div>`;
-    return;
-  }
-
-  const bal = calc(txs);
-  const totalExp = bal.expense;
-
-  el.innerHTML = goals.map(g => {
-    let current = g.type === "limit" ? totalExp : bal.total;
-    let pct = Math.min(100, (current / g.target_amount) * 100);
-    let barClass = g.type === "limit" ? (current > g.target_amount ? "bg-danger" : "bg-primary") : "bg-success";
-
-    return `
-      <div class="goal-item">
-        <div class="d-flex justify-content-between mb-1">
-          <strong style="font-size:14px">${escapeHtml(g.name)}</strong>
-          <small class="text-secondary">${g.type === "saving" ? "Nabung" : "Batas"}</small>
-        </div>
-        <div class="progress mb-1">
-          <div class="progress-bar \( {barClass}" style="width: \){pct}%"></div>
-        </div>
-        <div class="d-flex justify-content-between" style="font-size:12px;color:var(--bs-secondary-color)">
-          <span>${formatRupiah(current)}</span>
-          <span>dari ${formatRupiah(g.target_amount)}</span>
-        </div>
-      </div>`;
   }).join("");
 }
 
