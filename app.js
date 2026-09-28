@@ -1,5 +1,5 @@
 const SUPABASE_URL = "PASTE_PROJECT_URL_DI_SINI";
-const SUPABASE_KEY = "PASTE_PUBLISHABLE_KEY_DI_SINI";
+const SUPABASE_KEY = "sb_publishable_qo21jEafkf1rfKWLurbEsw_pDWiLZXy";
 
 const client = window.supabase.createClient(
   SUPABASE_URL,
