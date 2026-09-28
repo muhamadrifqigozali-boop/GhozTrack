@@ -2,143 +2,236 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Keuangan Pribadi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Keuangan</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- LOGIN PAGE -->
-  <div id="loginPage" class="page">
-    <div class="card login-card">
-      <h1>💰 Keuangan</h1>
-      <p>Catatan keuangan pribadi</p>
+  <!-- ========== PIN SCREEN ========== -->
+  <div id="pinPage" class="pin-page">
+    <div class="pin-header">
+      <div class="pin-logo">💰</div>
+      <h1>Keuangan</h1>
+      <p>Masukkan PIN</p>
+    </div>
 
-      <input id="password" type="password" placeholder="Password">
-      <button onclick="login()">Masuk</button>
+    <div class="pin-dots" id="pinDots">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
 
-      <p id="authMessage" class="message"></p>
+    <p id="pinError" class="pin-error"></p>
+
+    <div class="pin-pad">
+      <button onclick="pressPin('1')">1</button>
+      <button onclick="pressPin('2')">2</button>
+      <button onclick="pressPin('3')">3</button>
+      <button onclick="pressPin('4')">4</button>
+      <button onclick="pressPin('5')">5</button>
+      <button onclick="pressPin('6')">6</button>
+      <button onclick="pressPin('7')">7</button>
+      <button onclick="pressPin('8')">8</button>
+      <button onclick="pressPin('9')">9</button>
+      <button class="empty"></button>
+      <button onclick="pressPin('0')">0</button>
+      <button class="delete" onclick="deletePin()">⌫</button>
     </div>
   </div>
 
-  <!-- APP PAGE -->
-  <div id="appPage" class="page hidden">
+  <!-- ========== APP ========== -->
+  <div id="appPage" class="app hidden">
 
-    <header>
+    <!-- Header -->
+    <header class="app-header">
       <div>
-        <h1>💰 Keuangan</h1>
-        <p class="user-email">Pribadi</p>
+        <h1 id="headerTitle">Dashboard</h1>
+        <p id="headerSubtitle">Pilih bulan dulu</p>
       </div>
-      <button class="logout" onclick="logout()">Keluar</button>
+      <button class="icon-btn" onclick="logout()">⎋</button>
     </header>
 
-    <main>
+    <!-- Content -->
+    <main id="mainContent">
 
-      <!-- PILIH / BUAT BULAN -->
-      <section class="card">
-        <h2>Bulan</h2>
+      <!-- ===== DASHBOARD ===== -->
+      <section id="view-dashboard" class="view">
 
-        <select id="monthSelect" onchange="selectMonth()">
-          <option value="">-- Pilih bulan --</option>
-        </select>
+        <!-- Pilih Bulan -->
+        <div class="card">
+          <label class="label">Bulan Aktif</label>
+          <select id="monthSelect" onchange="selectMonth()">
+            <option value="">-- Pilih bulan --</option>
+          </select>
 
-        <div class="divider">atau buat baru</div>
+          <div class="or">atau</div>
 
-        <input id="monthName" placeholder="Contoh: September 2026">
-        <input id="openingCash" type="number" placeholder="Saldo Awal Cash">
-        <input id="openingNonCash" type="number" placeholder="Saldo Awal Non-Cash">
-
-        <button onclick="createMonth()">+ Buat Bulan Baru</button>
-      </section>
-
-      <!-- RINGKASAN -->
-      <section class="card" id="summarySection" style="display:none;">
-        <h2>Ringkasan <span id="currentMonthLabel"></span></h2>
-
-        <div class="summary">
-          <div>
-            <small>Saldo Awal Cash</small>
-            <strong id="openingCashDisplay">Rp0</strong>
+          <div class="create-month">
+            <input id="monthName" placeholder="Nama bulan (contoh: Oktober 2026)">
+            <div class="row">
+              <input id="openingCash" type="number" placeholder="Cash awal">
+              <input id="openingNonCash" type="number" placeholder="Non-Cash awal">
+            </div>
+            <button class="btn primary" onclick="createMonth()">Buat Bulan Baru</button>
           </div>
-          <div>
-            <small>Saldo Awal Non-Cash</small>
-            <strong id="openingNonCashDisplay">Rp0</strong>
+        </div>
+
+        <!-- Summary Cards -->
+        <div id="summaryCards" class="hidden">
+          <div class="balance-card">
+            <p>Total Saldo</p>
+            <h2 id="totalBalance">Rp0</h2>
+            <div class="balance-split">
+              <div>
+                <span>Cash</span>
+                <strong id="cashBalance">Rp0</strong>
+              </div>
+              <div>
+                <span>Non-Cash</span>
+                <strong id="nonCashBalance">Rp0</strong>
+              </div>
+            </div>
           </div>
-          <div>
-            <small>Cash Sekarang</small>
-            <strong id="cash">Rp0</strong>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>Pengeluaran</span>
+              <strong id="totalExpense" class="red">Rp0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Pemasukan</span>
+              <strong id="totalIncome" class="green">Rp0</strong>
+            </div>
           </div>
-          <div>
-            <small>Non-Cash Sekarang</small>
-            <strong id="nonCash">Rp0</strong>
+
+          <!-- Goals Progress -->
+          <div class="card" id="goalsPreview">
+            <div class="card-header">
+              <h3>Target</h3>
+              <button class="text-btn" onclick="showView('goals')">Lihat semua</button>
+            </div>
+            <div id="goalsListPreview"></div>
           </div>
-          <div>
-            <small>Total Pengeluaran</small>
-            <strong id="expenses" class="expense">Rp0</strong>
-          </div>
-          <div>
-            <small>Total Saldo Sekarang</small>
-            <strong id="ending">Rp0</strong>
+
+          <!-- Recent Transactions -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Transaksi Terbaru</h3>
+              <button class="text-btn" onclick="showView('transactions')">Lihat semua</button>
+            </div>
+            <div id="recentTransactions"></div>
           </div>
         </div>
       </section>
 
-      <!-- TAMBAH TRANSAKSI -->
-      <section class="card" id="transactionSection" style="display:none;">
-        <h2>Tambah Transaksi</h2>
+      <!-- ===== TRANSAKSI ===== -->
+      <section id="view-transactions" class="view hidden">
+        <div class="card">
+          <h3>Tambah Transaksi</h3>
 
-        <input id="transactionName" placeholder="Nama transaksi (contoh: Warteg)">
-        <input id="transactionAmount" type="number" placeholder="Nominal">
+          <input id="txName" placeholder="Nama transaksi">
+          <input id="txAmount" type="number" placeholder="Nominal">
 
-        <select id="transactionType" onchange="toggleTransfer()">
-          <option value="expense">Pengeluaran</option>
-          <option value="transfer">Transfer Cash ↔ Non-Cash</option>
-        </select>
-
-        <div id="expenseFields">
-          <select id="account">
-            <option value="cash">Dari Cash</option>
-            <option value="non_cash">Dari Non-Cash</option>
+          <select id="txType" onchange="toggleTxFields()">
+            <option value="expense">Pengeluaran</option>
+            <option value="income">Pemasukan</option>
+            <option value="transfer">Transfer</option>
           </select>
+
+          <div id="txCategoryWrap">
+            <select id="txCategory">
+              <option value="Makanan">Makanan</option>
+              <option value="Transport">Transport</option>
+              <option value="Tagihan">Tagihan</option>
+              <option value="Belanja">Belanja</option>
+              <option value="Hiburan">Hiburan</option>
+              <option value="Kesehatan">Kesehatan</option>
+              <option value="Pendidikan">Pendidikan</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+
+          <div id="txAccountWrap">
+            <select id="txAccount">
+              <option value="cash">Cash</option>
+              <option value="non_cash">Non-Cash</option>
+            </select>
+          </div>
+
+          <div id="txTransferWrap" class="hidden">
+            <select id="txFrom">
+              <option value="cash">Dari Cash</option>
+              <option value="non_cash">Dari Non-Cash</option>
+            </select>
+            <select id="txTo">
+              <option value="non_cash">Ke Non-Cash</option>
+              <option value="cash">Ke Cash</option>
+            </select>
+          </div>
+
+          <input id="txNote" placeholder="Catatan (opsional)">
+          <button class="btn primary" onclick="addTransaction()">Simpan</button>
         </div>
 
-        <div id="transferFields" class="hidden">
-          <select id="transferFrom">
-            <option value="cash">Dari Cash</option>
-            <option value="non_cash">Dari Non-Cash</option>
-          </select>
-          <select id="transferTo">
-            <option value="non_cash">Ke Non-Cash</option>
-            <option value="cash">Ke Cash</option>
-          </select>
+        <div class="card">
+          <h3>Semua Transaksi</h3>
+          <div id="allTransactions"></div>
         </div>
-
-        <button onclick="addTransaction()">Simpan Transaksi</button>
       </section>
 
-      <!-- RIWAYAT -->
-      <section class="card" id="historySection" style="display:none;">
-        <h2>Riwayat Transaksi</h2>
-        <div id="transactions">
-          Belum ada transaksi.
+      <!-- ===== TARGET / GOALS ===== -->
+      <section id="view-goals" class="view hidden">
+        <div class="card">
+          <h3>Tambah Target</h3>
+          <input id="goalName" placeholder="Nama target (contoh: Tabungan Darurat)">
+          <input id="goalAmount" type="number" placeholder="Jumlah target">
+          <select id="goalType">
+            <option value="saving">Target Nabung</option>
+            <option value="limit">Batas Pengeluaran</option>
+          </select>
+          <button class="btn primary" onclick="addGoal()">Tambah Target</button>
+        </div>
+
+        <div class="card">
+          <h3>Daftar Target</h3>
+          <div id="goalsList"></div>
         </div>
       </section>
 
     </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="showView('dashboard')" data-view="dashboard">
+        <span>🏠</span>
+        <small>Home</small>
+      </button>
+      <button class="nav-item" onclick="showView('transactions')" data-view="transactions">
+        <span>💸</span>
+        <small>Transaksi</small>
+      </button>
+      <button class="nav-item" onclick="showView('goals')" data-view="goals">
+        <span>🎯</span>
+        <small>Target</small>
+      </button>
+    </nav>
   </div>
 
-  <!-- MODAL EDIT -->
+  <!-- Edit Modal -->
   <div id="editModal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-box">
       <h3>Edit Transaksi</h3>
       <input id="editName" placeholder="Nama">
       <input id="editAmount" type="number" placeholder="Nominal">
-      <button onclick="saveEdit()">Simpan</button>
-      <button class="secondary" onclick="closeEdit()">Batal</button>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeEdit()">Batal</button>
+        <button class="btn primary" onclick="saveEdit()">Simpan</button>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
-</html>
+          </html>
