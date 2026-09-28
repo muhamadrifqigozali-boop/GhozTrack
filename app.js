@@ -86,9 +86,16 @@ function showApp() {
   document.getElementById("pinPage").classList.add("d-none");
   document.getElementById("appPage").classList.remove("d-none");
   fillYearOptions();
+  
   const now = new Date();
   document.getElementById("newMonth").value = String(now.getMonth() + 1).padStart(2, "0");
   generatePeriodName();
+
+  // Set default tanggal hari ini
+  const today = new Date().toISOString().split("T")[0];
+  const dateInput = document.getElementById("txDate");
+  if (dateInput) dateInput.value = today;
+
   loadMonths();
   showView("dashboard");
 }
@@ -257,10 +264,13 @@ async function addTransaction() {
   const amount = Number(document.getElementById("txAmount").value);
   const type = document.getElementById("txType").value;
   const note = document.getElementById("txNote").value.trim();
+  const txDate = document.getElementById("txDate").value || new Date().toISOString().split("T")[0];
 
   if (!name || amount <= 0) return alert("Isi nama & nominal");
 
-  let account = "cash", transfer_to = null, category = null;
+  let account = "cash";
+  let transfer_to = null;
+  let category = null;
 
   if (type === "transfer") {
     account = document.getElementById("txFrom").value;
@@ -272,21 +282,34 @@ async function addTransaction() {
   }
 
   const { error } = await client.from("transactions").insert({
-    month_id: currentMonth.id, name, amount, type, category, account, transfer_to, note
+    month_id: currentMonth.id,
+    name,
+    amount,
+    type,
+    category,
+    account,
+    transfer_to,
+    note,
+    transaction_date: txDate
   });
 
   if (error) return alert(error.message);
 
+  // Reset form
   document.getElementById("txName").value = "";
   document.getElementById("txAmount").value = "";
   document.getElementById("txNote").value = "";
+  document.getElementById("txDate").value = new Date().toISOString().split("T")[0];
+
   refreshAll();
 }
 
 async function getTransactions() {
   if (!currentMonth) return [];
   const { data } = await client.from("transactions").select("*")
-    .eq("month_id", currentMonth.id).order("created_at", { ascending: false });
+    .eq("month_id", currentMonth.id)
+    .order("transaction_date", { ascending: false })
+    .order("created_at", { ascending: false });
   return data || [];
 }
 
@@ -302,17 +325,31 @@ function renderTx(list, elId, limit = null) {
   el.innerHTML = items.map(t => {
     const isExp = t.type === "expense";
     const isInc = t.type === "income";
-    const sign = isExp ? "-" : isInc ? "+" : "";
-    const cls = isExp ? "expense" : isInc ? "income" : "";
-    let meta = t.type === "transfer"
-      ? `Transfer • ${t.account === "cash" ? "Cash" : "Non-Cash"} → ${t.transfer_to === "cash" ? "Cash" : "Non-Cash"}`
-      : `${t.category || "-"} • ${t.account === "cash" ? "Cash" : "Non-Cash"}`;
+    const sign = isExp ? "-" : (isInc ? "+" : "");
+    const cls = isExp ? "expense" : (isInc ? "income" : "");
+
+    let meta = "";
+    if (t.type === "transfer") {
+      meta = `Transfer • ${t.account === "cash" ? "Cash" : "Non-Cash"} → ${t.transfer_to === "cash" ? "Cash" : "Non-Cash"}`;
+    } else {
+      meta = `${t.category || "-"} • ${t.account === "cash" ? "Cash" : "Non-Cash"}`;
+    }
+
+    // Format tanggal
+    let tgl = "";
+    if (t.transaction_date) {
+      tgl = new Date(t.transaction_date).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+    }
 
     return `
       <div class="tx-item">
         <div>
           <div class="name">${escapeHtml(t.name)}</div>
-          <div class="meta">${meta}</div>
+          <div class="meta">\( {meta} \){tgl ? " • " + tgl : ""}</div>
         </div>
         <div>
           <div class="amount \( {cls}"> \){sign}${formatRupiah(t.amount)}</div>
@@ -321,7 +358,8 @@ function renderTx(list, elId, limit = null) {
             <button onclick="deleteTx(${t.id})">Hapus</button>
           </div>
         </div>
-      </div>`;
+      </div>
+    `;
   }).join("");
 }
 
