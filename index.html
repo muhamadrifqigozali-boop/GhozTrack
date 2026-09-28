@@ -1,237 +1,315 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Keuangan</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- ========== PIN SCREEN ========== -->
-  <div id="pinPage" class="pin-page">
-    <div class="pin-header">
-      <div class="pin-logo">💰</div>
+  <!-- PIN SCREEN -->
+  <div id="pinPage" class="pin-screen">
+    <div class="pin-content">
+      <div class="pin-avatar">💰</div>
       <h1>Keuangan</h1>
-      <p>Masukkan PIN</p>
-    </div>
+      <p class="text-muted-pin">Masukkan PIN 6 digit</p>
 
-    <div class="pin-dots" id="pinDots">
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-    </div>
+      <div class="pin-dots" id="pinDots">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <p id="pinError" class="pin-error"></p>
 
-    <p id="pinError" class="pin-error"></p>
-
-    <div class="pin-pad">
-      <button onclick="pressPin('1')">1</button>
-      <button onclick="pressPin('2')">2</button>
-      <button onclick="pressPin('3')">3</button>
-      <button onclick="pressPin('4')">4</button>
-      <button onclick="pressPin('5')">5</button>
-      <button onclick="pressPin('6')">6</button>
-      <button onclick="pressPin('7')">7</button>
-      <button onclick="pressPin('8')">8</button>
-      <button onclick="pressPin('9')">9</button>
-      <button class="empty"></button>
-      <button onclick="pressPin('0')">0</button>
-      <button class="delete" onclick="deletePin()">⌫</button>
+      <div class="pin-pad">
+        <button type="button" onclick="pressPin('1')">1</button>
+        <button type="button" onclick="pressPin('2')">2</button>
+        <button type="button" onclick="pressPin('3')">3</button>
+        <button type="button" onclick="pressPin('4')">4</button>
+        <button type="button" onclick="pressPin('5')">5</button>
+        <button type="button" onclick="pressPin('6')">6</button>
+        <button type="button" onclick="pressPin('7')">7</button>
+        <button type="button" onclick="pressPin('8')">8</button>
+        <button type="button" onclick="pressPin('9')">9</button>
+        <button type="button" class="empty"></button>
+        <button type="button" onclick="pressPin('0')">0</button>
+        <button type="button" class="delete" onclick="deletePin()"><i class="bi bi-backspace"></i></button>
+      </div>
     </div>
   </div>
 
-  <!-- ========== APP ========== -->
-  <div id="appPage" class="app hidden">
+  <!-- APP -->
+  <div id="appPage" class="app-wrapper d-none">
 
-    <!-- Header -->
-    <header class="app-header">
+    <header class="app-topbar">
       <div>
-        <h1 id="headerTitle">Dashboard</h1>
-        <p id="headerSubtitle">Pilih bulan dulu</p>
+        <h1 id="pageTitle">Dashboard</h1>
+        <small id="pageSubtitle" class="text-secondary">Pilih periode dulu</small>
       </div>
-      <button class="icon-btn" onclick="logout()">⎋</button>
+      <div class="d-flex gap-2">
+        <button class="btn-icon" onclick="toggleTheme()" title="Ganti tema">
+          <i class="bi bi-moon-stars" id="themeIcon"></i>
+        </button>
+        <button class="btn-icon" onclick="logout()" title="Keluar">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
     </header>
 
-    <!-- Content -->
-    <main id="mainContent">
+    <main class="app-main">
 
-      <!-- ===== DASHBOARD ===== -->
-      <section id="view-dashboard" class="view">
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="view-section">
 
-        <!-- Pilih Bulan -->
-        <div class="card">
-          <label class="label">Bulan Aktif</label>
-          <select id="monthSelect" onchange="selectMonth()">
-            <option value="">-- Pilih bulan --</option>
-          </select>
-
-          <div class="or">atau</div>
-
-          <div class="create-month">
-            <input id="monthName" placeholder="Nama bulan (contoh: Oktober 2026)">
-            <div class="row">
-              <input id="openingCash" type="number" placeholder="Cash awal">
-              <input id="openingNonCash" type="number" placeholder="Non-Cash awal">
+        <div class="card anime-card mb-3">
+          <div class="card-body">
+            <label class="form-label small text-secondary">Periode Aktif</label>
+            <div class="d-flex gap-2 mb-3">
+              <select id="monthSelect" class="form-select" onchange="selectMonth()">
+                <option value="">-- Pilih periode --</option>
+              </select>
+              <button class="btn btn-outline-danger btn-sm px-3" onclick="deleteMonth()" title="Hapus periode">
+                <i class="bi bi-trash3"></i>
+              </button>
             </div>
-            <button class="btn primary" onclick="createMonth()">Buat Bulan Baru</button>
+
+            <div class="text-center text-secondary small my-3">— Buat Periode Baru —</div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <select id="newYear" class="form-select" onchange="generatePeriodName()"></select>
+              </div>
+              <div class="col-6">
+                <select id="newMonth" class="form-select" onchange="generatePeriodName()">
+                  <option value="01">Januari</option>
+                  <option value="02">Februari</option>
+                  <option value="03">Maret</option>
+                  <option value="04">April</option>
+                  <option value="05">Mei</option>
+                  <option value="06">Juni</option>
+                  <option value="07">Juli</option>
+                  <option value="08">Agustus</option>
+                  <option value="09">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small text-secondary mb-1">Mulai tanggal</label>
+                <input type="number" id="startDay" class="form-control" min="1" max="31" value="25" onchange="generatePeriodName()">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-secondary mb-1">Sampai tanggal</label>
+                <input type="number" id="endDay" class="form-control" min="1" max="31" value="24" onchange="generatePeriodName()">
+              </div>
+            </div>
+
+            <label class="form-label small text-secondary mb-1">Nama Periode</label>
+            <input id="monthName" class="form-control mb-2" placeholder="Nama akan terisi otomatis">
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <input id="openingCash" type="number" class="form-control" placeholder="Cash awal">
+              </div>
+              <div class="col-6">
+                <input id="openingNonCash" type="number" class="form-control" placeholder="Non-Cash awal">
+              </div>
+            </div>
+
+            <button class="btn btn-primary w-100 mb-2" onclick="createMonth()">
+              <i class="bi bi-plus-lg me-1"></i> Buat Periode
+            </button>
+            <button class="btn btn-outline-secondary w-100 btn-sm" onclick="usePreviousBalance()">
+              <i class="bi bi-arrow-repeat me-1"></i> Pakai sisa periode sebelumnya
+            </button>
           </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div id="summaryCards" class="hidden">
-          <div class="balance-card">
-            <p>Total Saldo</p>
-            <h2 id="totalBalance">Rp0</h2>
-            <div class="balance-split">
+        <div id="summaryArea" class="d-none">
+          <div class="balance-hero mb-3">
+            <div class="small opacity-75">Total Saldo Saat Ini</div>
+            <div class="balance-amount" id="totalBalance">Rp0</div>
+            <div class="d-flex justify-content-between mt-3">
               <div>
-                <span>Cash</span>
-                <strong id="cashBalance">Rp0</strong>
+                <div class="small opacity-75">Cash</div>
+                <div class="fw-semibold" id="cashBalance">Rp0</div>
               </div>
-              <div>
-                <span>Non-Cash</span>
-                <strong id="nonCashBalance">Rp0</strong>
+              <div class="text-end">
+                <div class="small opacity-75">Non-Cash</div>
+                <div class="fw-semibold" id="nonCashBalance">Rp0</div>
               </div>
             </div>
           </div>
 
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span>Pengeluaran</span>
-              <strong id="totalExpense" class="red">Rp0</strong>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <div class="stat-box">
+                <div class="small text-secondary">Pengeluaran</div>
+                <div class="fw-bold text-danger" id="totalExpense">Rp0</div>
+              </div>
             </div>
-            <div class="stat-card">
-              <span>Pemasukan</span>
-              <strong id="totalIncome" class="green">Rp0</strong>
+            <div class="col-6">
+              <div class="stat-box">
+                <div class="small text-secondary">Pemasukan</div>
+                <div class="fw-bold text-success" id="totalIncome">Rp0</div>
+              </div>
             </div>
           </div>
 
-          <!-- Goals Progress -->
-          <div class="card" id="goalsPreview">
-            <div class="card-header">
-              <h3>Target</h3>
-              <button class="text-btn" onclick="showView('goals')">Lihat semua</button>
+          <div class="card anime-card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Target</h6>
+                <button class="btn btn-sm btn-link p-0" onclick="showView('goals')">Lihat semua</button>
+              </div>
+              <div id="goalsPreview"></div>
             </div>
-            <div id="goalsListPreview"></div>
           </div>
 
-          <!-- Recent Transactions -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Transaksi Terbaru</h3>
-              <button class="text-btn" onclick="showView('transactions')">Lihat semua</button>
+          <div class="card anime-card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Transaksi Terbaru</h6>
+                <button class="btn btn-sm btn-link p-0" onclick="showView('transactions')">Lihat semua</button>
+              </div>
+              <div id="recentTx"></div>
             </div>
-            <div id="recentTransactions"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== TRANSAKSI ===== -->
-      <section id="view-transactions" class="view hidden">
-        <div class="card">
-          <h3>Tambah Transaksi</h3>
+      <!-- TRANSAKSI -->
+      <section id="view-transactions" class="view-section d-none">
+        <div class="card anime-card mb-3">
+          <div class="card-body">
+            <h6 class="mb-3">Tambah Transaksi</h6>
 
-          <input id="txName" placeholder="Nama transaksi">
-          <input id="txAmount" type="number" placeholder="Nominal">
+            <input id="txName" class="form-control mb-2" placeholder="Nama transaksi">
+            <input id="txAmount" type="number" class="form-control mb-2" placeholder="Nominal">
 
-          <select id="txType" onchange="toggleTxFields()">
-            <option value="expense">Pengeluaran</option>
-            <option value="income">Pemasukan</option>
-            <option value="transfer">Transfer</option>
-          </select>
-
-          <div id="txCategoryWrap">
-            <select id="txCategory">
-              <option value="Makanan">Makanan</option>
-              <option value="Transport">Transport</option>
-              <option value="Tagihan">Tagihan</option>
-              <option value="Belanja">Belanja</option>
-              <option value="Hiburan">Hiburan</option>
-              <option value="Kesehatan">Kesehatan</option>
-              <option value="Pendidikan">Pendidikan</option>
-              <option value="Lainnya">Lainnya</option>
+            <select id="txType" class="form-select mb-2" onchange="toggleTxFields()">
+              <option value="expense">Pengeluaran</option>
+              <option value="income">Pemasukan</option>
+              <option value="transfer">Transfer Cash ↔ Non-Cash</option>
             </select>
+
+            <div id="wrapCategory">
+              <select id="txCategory" class="form-select mb-2">
+                <option value="Makanan">🍜 Makanan</option>
+                <option value="Transport">🚌 Transport</option>
+                <option value="Tagihan">🧾 Tagihan</option>
+                <option value="Belanja">🛒 Belanja</option>
+                <option value="Hiburan">🎮 Hiburan</option>
+                <option value="Kesehatan">💊 Kesehatan</option>
+                <option value="Pendidikan">📚 Pendidikan</option>
+                <option value="Gaji">💰 Gaji / Pemasukan</option>
+                <option value="Lainnya">✨ Lainnya</option>
+              </select>
+            </div>
+
+            <div id="wrapAccount">
+              <select id="txAccount" class="form-select mb-2">
+                <option value="cash">Cash</option>
+                <option value="non_cash">Non-Cash</option>
+              </select>
+            </div>
+
+            <div id="wrapTransfer" class="d-none">
+              <select id="txFrom" class="form-select mb-2">
+                <option value="cash">Dari Cash</option>
+                <option value="non_cash">Dari Non-Cash</option>
+              </select>
+              <select id="txTo" class="form-select mb-2">
+                <option value="non_cash">Ke Non-Cash</option>
+                <option value="cash">Ke Cash</option>
+              </select>
+            </div>
+
+            <input id="txNote" class="form-control mb-3" placeholder="Catatan (opsional)">
+            <button class="btn btn-primary w-100" onclick="addTransaction()">
+              <i class="bi bi-check2 me-1"></i> Simpan Transaksi
+            </button>
           </div>
-
-          <div id="txAccountWrap">
-            <select id="txAccount">
-              <option value="cash">Cash</option>
-              <option value="non_cash">Non-Cash</option>
-            </select>
-          </div>
-
-          <div id="txTransferWrap" class="hidden">
-            <select id="txFrom">
-              <option value="cash">Dari Cash</option>
-              <option value="non_cash">Dari Non-Cash</option>
-            </select>
-            <select id="txTo">
-              <option value="non_cash">Ke Non-Cash</option>
-              <option value="cash">Ke Cash</option>
-            </select>
-          </div>
-
-          <input id="txNote" placeholder="Catatan (opsional)">
-          <button class="btn primary" onclick="addTransaction()">Simpan</button>
         </div>
 
-        <div class="card">
-          <h3>Semua Transaksi</h3>
-          <div id="allTransactions"></div>
+        <div class="card anime-card">
+          <div class="card-body">
+            <h6 class="mb-3">Semua Transaksi</h6>
+            <div id="allTx"></div>
+          </div>
         </div>
       </section>
 
-      <!-- ===== TARGET / GOALS ===== -->
-      <section id="view-goals" class="view hidden">
-        <div class="card">
-          <h3>Tambah Target</h3>
-          <input id="goalName" placeholder="Nama target (contoh: Tabungan Darurat)">
-          <input id="goalAmount" type="number" placeholder="Jumlah target">
-          <select id="goalType">
-            <option value="saving">Target Nabung</option>
-            <option value="limit">Batas Pengeluaran</option>
-          </select>
-          <button class="btn primary" onclick="addGoal()">Tambah Target</button>
+      <!-- TARGET -->
+      <section id="view-goals" class="view-section d-none">
+        <div class="card anime-card mb-3">
+          <div class="card-body">
+            <h6 class="mb-3">Tambah Target</h6>
+            <input id="goalName" class="form-control mb-2" placeholder="Nama target">
+            <input id="goalAmount" type="number" class="form-control mb-2" placeholder="Jumlah target">
+            <select id="goalType" class="form-select mb-3">
+              <option value="saving">🎯 Target Nabung</option>
+              <option value="limit">⚠️ Batas Pengeluaran</option>
+            </select>
+            <button class="btn btn-primary w-100" onclick="addGoal()">Tambah Target</button>
+          </div>
         </div>
 
-        <div class="card">
-          <h3>Daftar Target</h3>
-          <div id="goalsList"></div>
+        <div class="card anime-card">
+          <div class="card-body">
+            <h6 class="mb-3">Daftar Target</h6>
+            <div id="goalsList"></div>
+          </div>
         </div>
       </section>
 
     </main>
 
-    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-      <button class="nav-item active" onclick="showView('dashboard')" data-view="dashboard">
-        <span>🏠</span>
-        <small>Home</small>
+      <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
+        <i class="bi bi-house-door"></i>
+        <span>Home</span>
       </button>
-      <button class="nav-item" onclick="showView('transactions')" data-view="transactions">
-        <span>💸</span>
-        <small>Transaksi</small>
+      <button class="nav-btn" data-view="transactions" onclick="showView('transactions')">
+        <i class="bi bi-arrow-left-right"></i>
+        <span>Transaksi</span>
       </button>
-      <button class="nav-item" onclick="showView('goals')" data-view="goals">
-        <span>🎯</span>
-        <small>Target</small>
+      <button class="nav-btn" data-view="goals" onclick="showView('goals')">
+        <i class="bi bi-bullseye"></i>
+        <span>Target</span>
       </button>
     </nav>
   </div>
 
   <!-- Edit Modal -->
-  <div id="editModal" class="modal hidden">
-    <div class="modal-box">
-      <h3>Edit Transaksi</h3>
-      <input id="editName" placeholder="Nama">
-      <input id="editAmount" type="number" placeholder="Nominal">
-      <div class="modal-actions">
-        <button class="btn secondary" onclick="closeEdit()">Batal</button>
-        <button class="btn primary" onclick="saveEdit()">Simpan</button>
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content anime-card">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Edit Transaksi</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input id="editName" class="form-control mb-2" placeholder="Nama">
+          <input id="editAmount" type="number" class="form-control" placeholder="Nominal">
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" onclick="saveEdit()">Simpan</button>
+        </div>
       </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
-          </html>
+</html>
