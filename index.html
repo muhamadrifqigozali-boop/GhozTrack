@@ -6,146 +6,139 @@
   <title>Keuangan Pribadi</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div id="loginPage" class="page">
-  <div class="card login-card">
-    <h1>💰 Keuangan</h1>
-    <p>Catatan keuangan pribadi</p>
-
-    <input id="email" type="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-
-    <button onclick="login()">Masuk</button>
-    <button class="secondary" onclick="register()">Daftar</button>
-
-    <p id="authMessage"></p>
-  </div>
-</div>
-
-
-<div id="appPage" class="page hidden">
-
-  <header>
-    <div>
+  <!-- LOGIN PAGE -->
+  <div id="loginPage" class="page">
+    <div class="card login-card">
       <h1>💰 Keuangan</h1>
-      <p id="userEmail"></p>
+      <p>Catatan keuangan pribadi</p>
+
+      <input id="password" type="password" placeholder="Password">
+      <button onclick="login()">Masuk</button>
+
+      <p id="authMessage" class="message"></p>
     </div>
+  </div>
 
-    <button class="logout" onclick="logout()">Keluar</button>
-  </header>
+  <!-- APP PAGE -->
+  <div id="appPage" class="page hidden">
 
-
-  <main>
-
-    <section class="card">
-      <h2>Gajian</h2>
-
-      <input id="monthName" placeholder="September 2026">
-
-      <input
-        id="openingBalance"
-        type="number"
-        placeholder="Saldo awal"
-      >
-
-      <button onclick="createMonth()">
-        + Buat Bulan
-      </button>
-    </section>
-
-
-    <section class="card">
-      <h2>Ringkasan</h2>
-
-      <div class="summary">
-
-        <div>
-          <small>Saldo Awal</small>
-          <strong id="opening">Rp0</strong>
-        </div>
-
-        <div>
-          <small>Cash</small>
-          <strong id="cash">Rp0</strong>
-        </div>
-
-        <div>
-          <small>Non-Cash</small>
-          <strong id="nonCash">Rp0</strong>
-        </div>
-
-        <div>
-          <small>Total Pengeluaran</small>
-          <strong id="expenses">Rp0</strong>
-        </div>
-
-        <div>
-          <small>Saldo Akhir</small>
-          <strong id="ending">Rp0</strong>
-        </div>
-
-        <div>
-          <small>Balance</small>
-          <strong id="balance">Rp0</strong>
-        </div>
-
+    <header>
+      <div>
+        <h1>💰 Keuangan</h1>
+        <p class="user-email">Pribadi</p>
       </div>
-    </section>
+      <button class="logout" onclick="logout()">Keluar</button>
+    </header>
 
+    <main>
 
-    <section class="card">
+      <!-- PILIH / BUAT BULAN -->
+      <section class="card">
+        <h2>Bulan</h2>
 
-      <h2>Tambah Transaksi</h2>
+        <select id="monthSelect" onchange="selectMonth()">
+          <option value="">-- Pilih bulan --</option>
+        </select>
 
-      <input id="transactionName" placeholder="Nama transaksi">
+        <div class="divider">atau buat baru</div>
 
-      <input
-        id="transactionAmount"
-        type="number"
-        placeholder="Nominal"
-      >
+        <input id="monthName" placeholder="Contoh: September 2026">
+        <input id="openingCash" type="number" placeholder="Saldo Awal Cash">
+        <input id="openingNonCash" type="number" placeholder="Saldo Awal Non-Cash">
 
-      <select id="transactionType">
-        <option value="expense">Pengeluaran</option>
-        <option value="transfer">Transfer Cash ↔ Non-Cash</option>
-      </select>
+        <button onclick="createMonth()">+ Buat Bulan Baru</button>
+      </section>
 
-      <select id="account">
-        <option value="cash">Cash</option>
-        <option value="non_cash">Non-Cash</option>
-      </select>
+      <!-- RINGKASAN -->
+      <section class="card" id="summarySection" style="display:none;">
+        <h2>Ringkasan <span id="currentMonthLabel"></span></h2>
 
-      <select id="transferTo">
-        <option value="">Tidak ada</option>
-        <option value="cash">Cash</option>
-        <option value="non_cash">Non-Cash</option>
-      </select>
+        <div class="summary">
+          <div>
+            <small>Saldo Awal Cash</small>
+            <strong id="openingCashDisplay">Rp0</strong>
+          </div>
+          <div>
+            <small>Saldo Awal Non-Cash</small>
+            <strong id="openingNonCashDisplay">Rp0</strong>
+          </div>
+          <div>
+            <small>Cash Sekarang</small>
+            <strong id="cash">Rp0</strong>
+          </div>
+          <div>
+            <small>Non-Cash Sekarang</small>
+            <strong id="nonCash">Rp0</strong>
+          </div>
+          <div>
+            <small>Total Pengeluaran</small>
+            <strong id="expenses" class="expense">Rp0</strong>
+          </div>
+          <div>
+            <small>Total Saldo Sekarang</small>
+            <strong id="ending">Rp0</strong>
+          </div>
+        </div>
+      </section>
 
-      <button onclick="addTransaction()">
-        Simpan Transaksi
-      </button>
+      <!-- TAMBAH TRANSAKSI -->
+      <section class="card" id="transactionSection" style="display:none;">
+        <h2>Tambah Transaksi</h2>
 
-    </section>
+        <input id="transactionName" placeholder="Nama transaksi (contoh: Warteg)">
+        <input id="transactionAmount" type="number" placeholder="Nominal">
 
+        <select id="transactionType" onchange="toggleTransfer()">
+          <option value="expense">Pengeluaran</option>
+          <option value="transfer">Transfer Cash ↔ Non-Cash</option>
+        </select>
 
-    <section class="card">
+        <div id="expenseFields">
+          <select id="account">
+            <option value="cash">Dari Cash</option>
+            <option value="non_cash">Dari Non-Cash</option>
+          </select>
+        </div>
 
-      <h2>Riwayat</h2>
+        <div id="transferFields" class="hidden">
+          <select id="transferFrom">
+            <option value="cash">Dari Cash</option>
+            <option value="non_cash">Dari Non-Cash</option>
+          </select>
+          <select id="transferTo">
+            <option value="non_cash">Ke Non-Cash</option>
+            <option value="cash">Ke Cash</option>
+          </select>
+        </div>
 
-      <div id="transactions">
-        Belum ada transaksi.
-      </div>
+        <button onclick="addTransaction()">Simpan Transaksi</button>
+      </section>
 
-    </section>
+      <!-- RIWAYAT -->
+      <section class="card" id="historySection" style="display:none;">
+        <h2>Riwayat Transaksi</h2>
+        <div id="transactions">
+          Belum ada transaksi.
+        </div>
+      </section>
 
-  </main>
+    </main>
+  </div>
 
-</div>
+  <!-- MODAL EDIT -->
+  <div id="editModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Transaksi</h3>
+      <input id="editName" placeholder="Nama">
+      <input id="editAmount" type="number" placeholder="Nominal">
+      <button onclick="saveEdit()">Simpan</button>
+      <button class="secondary" onclick="closeEdit()">Batal</button>
+    </div>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </body>
-                                                                     </html>
+</html>
