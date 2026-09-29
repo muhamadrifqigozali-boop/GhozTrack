@@ -10,7 +10,6 @@ body {
   transition: background 0.3s ease;
 }
 
-/* PIN SCREEN */
 .pin-screen {
   min-height: 100vh;
   display: flex;
@@ -109,7 +108,6 @@ body {
   font-size: 20px;
 }
 
-/* APP */
 .app-wrapper {
   max-width: 480px;
   margin: 0 auto;
@@ -147,11 +145,6 @@ body {
   justify-content: center;
   font-size: 18px;
   color: var(--bs-body-color);
-  transition: all 0.2s;
-}
-
-.btn-icon:active {
-  transform: scale(0.92);
 }
 
 .app-main {
@@ -171,7 +164,6 @@ body {
   border: none;
   border-radius: var(--radius);
   box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 [data-bs-theme="dark"] .anime-card {
@@ -243,10 +235,6 @@ body {
   margin-bottom: 16px;
 }
 
-.goal-item:last-child {
-  margin-bottom: 0;
-}
-
 .progress {
   height: 8px;
   border-radius: 99px;
@@ -255,7 +243,6 @@ body {
 
 .progress-bar {
   border-radius: 99px;
-  transition: width 0.5s ease;
 }
 
 .bottom-nav {
@@ -284,7 +271,6 @@ body {
   color: var(--bs-secondary-color);
   font-size: 11px;
   font-weight: 500;
-  transition: color 0.2s;
 }
 
 .nav-btn i {
@@ -322,4 +308,4 @@ body {
 .btn-primary:hover, .btn-primary:active {
   background: #6d28d9 !important;
   border-color: #6d28d9 !important;
-}
+    }
