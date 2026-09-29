@@ -563,4 +563,88 @@ function render503020(txs) {
       '<div class="d-flex justify-content-between mb-1">' +
         '<span>Savings (Tabungan)</span>' +
         '<strong class="text-success">' + formatRupiah(actualSavings) + ' / ' + formatRupiah(idealSavings) + '</strong>' +
- 
+      '</div>' +
+      '<div class="progress mb-1" style="height:8px">' +
+        '<div class="progress-bar bg-success" style="width:' + savingsPct + '%"></div>' +
+      '</div>' +
+      '<small class="text-secondary">' + savingsPct + '% dari ideal 20%</small>' +
+    '</div>';
+}
+
+// ========== CALC ==========
+function calc(txs) {
+  let cash = Number(currentMonth.opening_cash);
+  let nonCash = Number(currentMonth.opening_non_cash);
+  let expense = 0, income = 0;
+
+  txs.forEach(t => {
+    const a = Number(t.amount);
+    if (t.type === "expense") {
+      expense += a;
+      if (t.account === "cash") cash -= a; else nonCash -= a;
+    }
+    if (t.type === "income") {
+      income += a;
+      if (t.account === "cash") cash += a; else nonCash += a;
+    }
+    if (t.type === "transfer") {
+      if (t.account === "cash" && t.transfer_to === "non_cash") { cash -= a; nonCash += a; }
+      if (t.account === "non_cash" && t.transfer_to === "cash") { nonCash -= a; cash += a; }
+    }
+  });
+  return { cash, nonCash, total: cash + nonCash, expense, income };
+}
+
+async function refreshAll() {
+  if (!currentMonth) return;
+  const [txs, goals, budgets] = await Promise.all([getTransactions(), getGoals(), getBudgets()]);
+  const bal = calc(txs);
+
+  document.getElementById("totalBalance").textContent = formatRupiah(bal.total);
+  document.getElementById("cashBalance").textContent = formatRupiah(bal.cash);
+  document.getElementById("nonCashBalance").textContent = formatRupiah(bal.nonCash);
+  document.getElementById("totalExpense").textContent = formatRupiah(bal.expense);
+  document.getElementById("totalIncome").textContent = formatRupiah(bal.income);
+
+  renderTx(txs, "recentTx", 5);
+  renderTx(txs, "allTx");
+  renderGoals(goals, txs, "goalsPreview");
+  renderGoals(goals, txs, "goalsList");
+  renderBudgets(budgets, txs);
+  render503020(txs);
+}
+
+// ========== EDIT / DELETE ==========
+function openEdit(id, name, amount) {
+  editingId = id;
+  document.getElementById("editName").value = name;
+  document.getElementById("editAmount").value = amount;
+  editModal.show();
+}
+
+async function saveEdit() {
+  if (!editingId) return;
+  const name = document.getElementById("editName").value.trim();
+  const amount = Number(document.getElementById("editAmount").value);
+  if (!name || amount <= 0) return alert("Data tidak valid");
+
+  const { error } = await client.from("transactions").update({ name, amount }).eq("id", editingId);
+  if (error) return alert(error.message);
+  editModal.hide();
+  refreshAll();
+}
+
+async function deleteTx(id) {
+  if (!confirm("Hapus transaksi ini?")) return;
+  await client.from("transactions").delete().eq("id", id);
+  refreshAll();
+}
+
+// ========== INIT ==========
+function init() {
+  loadTheme();
+  editModal = new bootstrap.Modal(document.getElementById("editModal"));
+  if (localStorage.getItem("keuangan_ok") === "1") showApp();
+}
+
+init();
