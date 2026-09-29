@@ -99,7 +99,7 @@ function showApp() {
   showView("dashboard");
 }
 
-// ========== PERIOD ==========
+// ========== PERIOD NAME (SUDAH DIPERBAIKI) ==========
 function fillYearOptions() {
   const select = document.getElementById("newYear");
   if (!select) return;
@@ -115,19 +115,38 @@ function fillYearOptions() {
 }
 
 function generatePeriodName() {
-  const year = document.getElementById("newYear")?.value;
-  const month = document.getElementById("newMonth")?.value;
-  const startDay = document.getElementById("startDay")?.value || 1;
-  const endDay = document.getElementById("endDay")?.value || 30;
+  const year = parseInt(document.getElementById("newYear")?.value);
+  const month = parseInt(document.getElementById("newMonth")?.value);
+  const startDay = parseInt(document.getElementById("startDay")?.value) || 1;
+  const endDay = parseInt(document.getElementById("endDay")?.value) || 30;
+
   if (!year || !month) return;
 
-  const monthNames = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const monthName = monthNames[parseInt(month)];
+  const monthNames = [
+    "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
 
-  let name = parseInt(startDay) === 1
-    ? monthName + " " + year
-    : startDay + " " + monthName + " – " + endDay + " " + monthName + " " + year;
+  // Kalau tanggal mulai = 1 → nama biasa
+  if (startDay === 1) {
+    document.getElementById("monthName").value = monthNames[month] + " " + year;
+    return;
+  }
 
+  // Hitung bulan & tahun akhir (lintas bulan)
+  let endMonth = month;
+  let endYear = year;
+
+  // Kalau endDay < startDay, berarti masuk bulan berikutnya
+  if (endDay < startDay) {
+    endMonth = month + 1;
+    if (endMonth > 12) {
+      endMonth = 1;
+      endYear = year + 1;
+    }
+  }
+
+  const name = startDay + " " + monthNames[month] + " – " + endDay + " " + monthNames[endMonth] + " " + endYear;
   document.getElementById("monthName").value = name;
 }
 
@@ -481,115 +500,67 @@ function renderBudgets(budgets, txs) {
   el.innerHTML = html;
 }
 
+// ========== 50/30/20 (SUDAH DIPERBAIKI) ==========
 function render503020(txs) {
   const el = document.getElementById("rule503020");
   if (!el) return;
 
   const bal = calc(txs);
-  const totalExpense = bal.expense || 1;
-  const needsCat = ["Makanan", "Transport", "Tagihan", "Kesehatan", "Pendidikan"];
-  const wantsCat = ["Hiburan", "Belanja", "Lainnya"];
 
-  let needs = 0, wants = 0;
+  // Dasar: Saldo Awal + Pemasukan
+  const base = Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash) + bal.income;
+
+  if (base <= 0) {
+    el.innerHTML = '<div class="empty-state">Belum ada saldo untuk dihitung</div>';
+    return;
+  }
+
+  const idealNeeds = base * 0.5;
+  const idealWants = base * 0.3;
+  const idealSavings = base * 0.2;
+
+  const needsCat = ["Makanan", "Transport", "Tagihan", "Kesehatan", "Pendidikan"];
+  let actualNeeds = 0;
+  let actualWants = 0;
+
   txs.forEach(t => {
     if (t.type !== "expense") return;
     const amt = Number(t.amount);
-    if (needsCat.includes(t.category)) needs += amt;
-    else wants += amt;
+    if (needsCat.includes(t.category)) actualNeeds += amt;
+    else actualWants += amt;
   });
 
-  const savings = Math.max(0, (Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash) + bal.income) - bal.expense);
-  const needsPct = ((needs / totalExpense) * 100).toFixed(0);
-  const wantsPct = ((wants / totalExpense) * 100).toFixed(0);
+  const actualSavings = Math.max(0, base - bal.expense);
+
+  const needsPct = Math.min(100, (actualNeeds / idealNeeds) * 100).toFixed(0);
+  const wantsPct = Math.min(100, (actualWants / idealWants) * 100).toFixed(0);
+  const savingsPct = Math.min(100, (actualSavings / idealSavings) * 100).toFixed(0);
 
   el.innerHTML =
-    '<div class="mb-2">' +
-      '<div class="d-flex justify-content-between"><span>Needs (Kebutuhan)</span><strong>' + formatRupiah(needs) + ' (' + needsPct + '%)</strong></div>' +
-      '<div class="progress mb-2" style="height:8px"><div class="progress-bar bg-primary" style="width:' + needsPct + '%"></div></div>' +
+    '<div class="mb-3">' +
+      '<div class="d-flex justify-content-between mb-1">' +
+        '<span>Needs (Kebutuhan)</span>' +
+        '<strong>' + formatRupiah(actualNeeds) + ' / ' + formatRupiah(idealNeeds) + '</strong>' +
+      '</div>' +
+      '<div class="progress mb-1" style="height:8px">' +
+        '<div class="progress-bar bg-primary" style="width:' + needsPct + '%"></div>' +
+      '</div>' +
+      '<small class="text-secondary">' + needsPct + '% dari ideal 50%</small>' +
     '</div>' +
-    '<div class="mb-2">' +
-      '<div class="d-flex justify-content-between"><span>Wants (Keinginan)</span><strong>' + formatRupiah(wants) + ' (' + wantsPct + '%)</strong></div>' +
-      '<div class="progress mb-2" style="height:8px"><div class="progress-bar bg-warning" style="width:' + wantsPct + '%"></div></div>' +
+
+    '<div class="mb-3">' +
+      '<div class="d-flex justify-content-between mb-1">' +
+        '<span>Wants (Keinginan)</span>' +
+        '<strong>' + formatRupiah(actualWants) + ' / ' + formatRupiah(idealWants) + '</strong>' +
+      '</div>' +
+      '<div class="progress mb-1" style="height:8px">' +
+        '<div class="progress-bar bg-warning" style="width:' + wantsPct + '%"></div>' +
+      '</div>' +
+      '<small class="text-secondary">' + wantsPct + '% dari ideal 30%</small>' +
     '</div>' +
+
     '<div>' +
-      '<div class="d-flex justify-content-between"><span>Saved (Tersisa)</span><strong class="text-success">' + formatRupiah(savings) + '</strong></div>' +
-    '</div>';
-}
-
-// ========== CALC ==========
-function calc(txs) {
-  let cash = Number(currentMonth.opening_cash);
-  let nonCash = Number(currentMonth.opening_non_cash);
-  let expense = 0, income = 0;
-
-  txs.forEach(t => {
-    const a = Number(t.amount);
-    if (t.type === "expense") {
-      expense += a;
-      if (t.account === "cash") cash -= a; else nonCash -= a;
-    }
-    if (t.type === "income") {
-      income += a;
-      if (t.account === "cash") cash += a; else nonCash += a;
-    }
-    if (t.type === "transfer") {
-      if (t.account === "cash" && t.transfer_to === "non_cash") { cash -= a; nonCash += a; }
-      if (t.account === "non_cash" && t.transfer_to === "cash") { nonCash -= a; cash += a; }
-    }
-  });
-  return { cash, nonCash, total: cash + nonCash, expense, income };
-}
-
-async function refreshAll() {
-  if (!currentMonth) return;
-  const [txs, goals, budgets] = await Promise.all([getTransactions(), getGoals(), getBudgets()]);
-  const bal = calc(txs);
-
-  document.getElementById("totalBalance").textContent = formatRupiah(bal.total);
-  document.getElementById("cashBalance").textContent = formatRupiah(bal.cash);
-  document.getElementById("nonCashBalance").textContent = formatRupiah(bal.nonCash);
-  document.getElementById("totalExpense").textContent = formatRupiah(bal.expense);
-  document.getElementById("totalIncome").textContent = formatRupiah(bal.income);
-
-  renderTx(txs, "recentTx", 5);
-  renderTx(txs, "allTx");
-  renderGoals(goals, txs, "goalsPreview");
-  renderGoals(goals, txs, "goalsList");
-  renderBudgets(budgets, txs);
-  render503020(txs);
-}
-
-// ========== EDIT / DELETE ==========
-function openEdit(id, name, amount) {
-  editingId = id;
-  document.getElementById("editName").value = name;
-  document.getElementById("editAmount").value = amount;
-  editModal.show();
-}
-
-async function saveEdit() {
-  if (!editingId) return;
-  const name = document.getElementById("editName").value.trim();
-  const amount = Number(document.getElementById("editAmount").value);
-  if (!name || amount <= 0) return alert("Data tidak valid");
-
-  const { error } = await client.from("transactions").update({ name, amount }).eq("id", editingId);
-  if (error) return alert(error.message);
-  editModal.hide();
-  refreshAll();
-}
-
-async function deleteTx(id) {
-  if (!confirm("Hapus transaksi ini?")) return;
-  await client.from("transactions").delete().eq("id", id);
-  refreshAll();
-}
-
-// ========== INIT ==========
-function init() {
-  loadTheme();
-  editModal = new bootstrap.Modal(document.getElementById("editModal"));
-  if (localStorage.getItem("keuangan_ok") === "1") showApp();
-}
-
-init();
+      '<div class="d-flex justify-content-between mb-1">' +
+        '<span>Savings (Tabungan)</span>' +
+        '<strong class="text-success">' + formatRupiah(actualSavings) + ' / ' + formatRupiah(idealSavings) + '</strong>' +
+ 
