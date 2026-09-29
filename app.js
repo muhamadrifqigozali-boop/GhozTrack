@@ -548,4 +548,48 @@ async function refreshAll() {
   document.getElementById("totalBalance").textContent = formatRupiah(bal.total);
   document.getElementById("cashBalance").textContent = formatRupiah(bal.cash);
   document.getElementById("nonCashBalance").textContent = formatRupiah(bal.nonCash);
-  document.getElementBy
+  document.getElementById("totalExpense").textContent = formatRupiah(bal.expense);
+  document.getElementById("totalIncome").textContent = formatRupiah(bal.income);
+
+  renderTx(txs, "recentTx", 5);
+  renderTx(txs, "allTx");
+  renderGoals(goals, txs, "goalsPreview");
+  renderGoals(goals, txs, "goalsList");
+  renderBudgets(budgets, txs);
+  render503020(txs);
+}
+
+// ========== EDIT / DELETE ==========
+function openEdit(id, name, amount) {
+  editingId = id;
+  document.getElementById("editName").value = name;
+  document.getElementById("editAmount").value = amount;
+  editModal.show();
+}
+
+async function saveEdit() {
+  if (!editingId) return;
+  const name = document.getElementById("editName").value.trim();
+  const amount = Number(document.getElementById("editAmount").value);
+  if (!name || amount <= 0) return alert("Data tidak valid");
+
+  const { error } = await client.from("transactions").update({ name, amount }).eq("id", editingId);
+  if (error) return alert(error.message);
+  editModal.hide();
+  refreshAll();
+}
+
+async function deleteTx(id) {
+  if (!confirm("Hapus transaksi ini?")) return;
+  await client.from("transactions").delete().eq("id", id);
+  refreshAll();
+}
+
+// ========== INIT ==========
+function init() {
+  loadTheme();
+  editModal = new bootstrap.Modal(document.getElementById("editModal"));
+  if (localStorage.getItem("keuangan_ok") === "1") showApp();
+}
+
+init();
