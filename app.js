@@ -99,7 +99,7 @@ function showApp() {
   showView("dashboard");
 }
 
-// ========== PERIOD NAME ==========
+// ========== PERIOD ==========
 function fillYearOptions() {
   const select = document.getElementById("newYear");
   if (!select) return;
@@ -119,21 +119,15 @@ function generatePeriodName() {
   const month = document.getElementById("newMonth")?.value;
   const startDay = document.getElementById("startDay")?.value || 1;
   const endDay = document.getElementById("endDay")?.value || 30;
-
   if (!year || !month) return;
 
-  const monthNames = [
-    "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-  ];
+  const monthNames = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const monthName = monthNames[parseInt(month)];
 
-  let name = "";
-  if (parseInt(startDay) === 1) {
-    name = monthName + " " + year;
-  } else {
-    name = startDay + " " + monthName + " – " + endDay + " " + monthName + " " + year;
-  }
+  let name = parseInt(startDay) === 1
+    ? monthName + " " + year
+    : startDay + " " + monthName + " – " + endDay + " " + monthName + " " + year;
+
   document.getElementById("monthName").value = name;
 }
 
@@ -146,11 +140,11 @@ function showView(name) {
     b.classList.toggle("active", b.dataset.view === name);
   });
 
-  const titles = { dashboard: "Dashboard", transactions: "Transaksi", goals: "Target" };
+  const titles = { dashboard: "Dashboard", transactions: "Transaksi", budget: "Budget", goals: "Target" };
   document.getElementById("pageTitle").textContent = titles[name];
 }
 
-// ========== MONTH / PERIOD ==========
+// ========== MONTH ==========
 async function loadMonths() {
   const { data } = await client.from("months").select("*").order("created_at", { ascending: false });
   const sel = document.getElementById("monthSelect");
@@ -239,6 +233,7 @@ async function deleteMonth() {
 
   await client.from("transactions").delete().eq("month_id", currentMonth.id);
   await client.from("goals").delete().eq("month_id", currentMonth.id);
+  await client.from("budgets").delete().eq("month_id", currentMonth.id);
   await client.from("months").delete().eq("id", currentMonth.id);
 
   currentMonth = null;
@@ -267,9 +262,7 @@ async function addTransaction() {
 
   if (!name || amount <= 0) return alert("Isi nama & nominal");
 
-  let account = "cash";
-  let transfer_to = null;
-  let category = null;
+  let account = "cash", transfer_to = null, category = null;
 
   if (type === "transfer") {
     account = document.getElementById("txFrom").value;
@@ -281,15 +274,7 @@ async function addTransaction() {
   }
 
   const { error } = await client.from("transactions").insert({
-    month_id: currentMonth.id,
-    name,
-    amount,
-    type,
-    category,
-    account,
-    transfer_to,
-    note,
-    transaction_date: txDate
+    month_id: currentMonth.id, name, amount, type, category, account, transfer_to, note, transaction_date: txDate
   });
 
   if (error) return alert(error.message);
@@ -298,7 +283,6 @@ async function addTransaction() {
   document.getElementById("txAmount").value = "";
   document.getElementById("txNote").value = "";
   document.getElementById("txDate").value = new Date().toISOString().split("T")[0];
-
   refreshAll();
 }
 
@@ -323,17 +307,8 @@ function renderTx(list, elId, limit = null) {
   el.innerHTML = items.map(t => {
     const isExp = t.type === "expense";
     const isInc = t.type === "income";
-
-    let sign = "";
-    let cls = "";
-
-    if (isExp) {
-      sign = "-";
-      cls = "expense";
-    } else if (isInc) {
-      sign = "+";
-      cls = "income";
-    }
+    let sign = isExp ? "-" : (isInc ? "+" : "");
+    let cls = isExp ? "expense" : (isInc ? "income" : "");
 
     let meta = "";
     if (t.type === "transfer") {
@@ -341,19 +316,13 @@ function renderTx(list, elId, limit = null) {
       const to = t.transfer_to === "cash" ? "Cash" : "Non-Cash";
       meta = "Transfer • " + from + " → " + to;
     } else {
-      const acc = t.account === "cash" ? "Cash" : "Non-Cash";
-      meta = (t.category || "-") + " • " + acc;
+      meta = (t.category || "-") + " • " + (t.account === "cash" ? "Cash" : "Non-Cash");
     }
 
     let tgl = "";
     if (t.transaction_date) {
-      tgl = new Date(t.transaction_date).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric"
-      });
+      tgl = new Date(t.transaction_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     }
-
     const fullMeta = tgl ? meta + " • " + tgl : meta;
 
     return (
@@ -383,10 +352,7 @@ async function addGoal() {
   if (!name || amount <= 0) return alert("Isi nama & jumlah");
 
   const { error } = await client.from("goals").insert({
-    month_id: currentMonth.id,
-    name,
-    target_amount: amount,
-    type
+    month_id: currentMonth.id, name, target_amount: amount, type
   });
   if (error) return alert(error.message);
 
@@ -397,9 +363,7 @@ async function addGoal() {
 
 async function getGoals() {
   if (!currentMonth) return [];
-  const { data } = await client.from("goals").select("*")
-    .eq("month_id", currentMonth.id)
-    .order("created_at", { ascending: false });
+  const { data } = await client.from("goals").select("*").eq("month_id", currentMonth.id).order("created_at", { ascending: false });
   return data || [];
 }
 
@@ -411,24 +375,31 @@ function renderGoals(goals, txs, elId) {
   }
 
   const bal = calc(txs);
-  const totalExp = bal.expense;
+  const openingTotal = Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash);
+  const savedThisPeriod = openingTotal + bal.income - bal.expense;
 
   el.innerHTML = goals.map(g => {
-    let current = g.type === "limit" ? totalExp : bal.total;
-    let pct = Math.min(100, (current / g.target_amount) * 100);
-    let barClass = g.type === "limit"
-      ? (current > g.target_amount ? "bg-danger" : "bg-primary")
-      : "bg-success";
+    let current = 0, pct = 0, barClass = "", label = "";
+
+    if (g.type === "limit") {
+      current = bal.expense;
+      pct = Math.min(100, (current / g.target_amount) * 100);
+      barClass = current > g.target_amount ? "bg-danger" : "bg-primary";
+      label = "Batas";
+    } else {
+      current = Math.max(0, savedThisPeriod);
+      pct = Math.min(100, (current / g.target_amount) * 100);
+      barClass = current >= g.target_amount ? "bg-success" : "bg-warning";
+      label = "Nabung";
+    }
 
     return (
       '<div class="goal-item">' +
         '<div class="d-flex justify-content-between mb-1">' +
           '<strong style="font-size:14px">' + escapeHtml(g.name) + '</strong>' +
-          '<small class="text-secondary">' + (g.type === "saving" ? "Nabung" : "Batas") + '</small>' +
+          '<small class="text-secondary">' + label + '</small>' +
         '</div>' +
-        '<div class="progress mb-1">' +
-          '<div class="progress-bar ' + barClass + '" style="width:' + pct + '%"></div>' +
-        '</div>' +
+        '<div class="progress mb-1"><div class="progress-bar ' + barClass + '" style="width:' + pct + '%"></div></div>' +
         '<div class="d-flex justify-content-between" style="font-size:12px;color:var(--bs-secondary-color)">' +
           '<span>' + formatRupiah(current) + '</span>' +
           '<span>dari ' + formatRupiah(g.target_amount) + '</span>' +
@@ -436,6 +407,113 @@ function renderGoals(goals, txs, elId) {
       '</div>'
     );
   }).join("");
+}
+
+// ========== BUDGET ==========
+async function saveBudget() {
+  if (!currentMonth) return alert("Pilih periode dulu");
+  const category = document.getElementById("budgetCategory").value;
+  const amount = Number(document.getElementById("budgetAmount").value);
+  if (!amount || amount <= 0) return alert("Isi jumlah budget");
+
+  const { error } = await client.from("budgets").upsert({
+    month_id: currentMonth.id,
+    category,
+    amount
+  }, { onConflict: "month_id,category" });
+
+  if (error) return alert(error.message);
+  document.getElementById("budgetAmount").value = "";
+  refreshAll();
+}
+
+async function getBudgets() {
+  if (!currentMonth) return [];
+  const { data } = await client.from("budgets").select("*").eq("month_id", currentMonth.id);
+  return data || [];
+}
+
+function renderBudgets(budgets, txs) {
+  const el = document.getElementById("budgetList");
+  if (!el) return;
+
+  const actual = {};
+  txs.forEach(t => {
+    if (t.type === "expense" && t.category) {
+      actual[t.category] = (actual[t.category] || 0) + Number(t.amount);
+    }
+  });
+
+  if (!budgets.length && Object.keys(actual).length === 0) {
+    el.innerHTML = '<div class="empty-state">Belum ada budget</div>';
+    return;
+  }
+
+  const allCategories = new Set([...budgets.map(b => b.category), ...Object.keys(actual)]);
+  let html = "";
+
+  allCategories.forEach(cat => {
+    const budgetItem = budgets.find(b => b.category === cat);
+    const budgetAmt = budgetItem ? Number(budgetItem.amount) : 0;
+    const actualAmt = actual[cat] || 0;
+    const sisa = budgetAmt - actualAmt;
+    const pct = budgetAmt > 0 ? Math.min(100, (actualAmt / budgetAmt) * 100) : 0;
+    const isOver = actualAmt > budgetAmt && budgetAmt > 0;
+
+    html +=
+      '<div class="mb-3">' +
+        '<div class="d-flex justify-content-between mb-1">' +
+          '<strong style="font-size:14px">' + cat + '</strong>' +
+          '<small class="' + (isOver ? 'text-danger' : 'text-secondary') + '">' +
+            formatRupiah(actualAmt) + ' / ' + (budgetAmt > 0 ? formatRupiah(budgetAmt) : '-') +
+          '</small>' +
+        '</div>' +
+        '<div class="progress mb-1" style="height:8px">' +
+          '<div class="progress-bar ' + (isOver ? 'bg-danger' : 'bg-primary') + '" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="d-flex justify-content-between" style="font-size:12px;color:var(--bs-secondary-color)">' +
+          '<span>Sisa: ' + formatRupiah(sisa) + '</span>' +
+          '<span>' + pct.toFixed(0) + '%</span>' +
+        '</div>' +
+      '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function render503020(txs) {
+  const el = document.getElementById("rule503020");
+  if (!el) return;
+
+  const bal = calc(txs);
+  const totalExpense = bal.expense || 1;
+  const needsCat = ["Makanan", "Transport", "Tagihan", "Kesehatan", "Pendidikan"];
+  const wantsCat = ["Hiburan", "Belanja", "Lainnya"];
+
+  let needs = 0, wants = 0;
+  txs.forEach(t => {
+    if (t.type !== "expense") return;
+    const amt = Number(t.amount);
+    if (needsCat.includes(t.category)) needs += amt;
+    else wants += amt;
+  });
+
+  const savings = Math.max(0, (Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash) + bal.income) - bal.expense);
+  const needsPct = ((needs / totalExpense) * 100).toFixed(0);
+  const wantsPct = ((wants / totalExpense) * 100).toFixed(0);
+
+  el.innerHTML =
+    '<div class="mb-2">' +
+      '<div class="d-flex justify-content-between"><span>Needs (Kebutuhan)</span><strong>' + formatRupiah(needs) + ' (' + needsPct + '%)</strong></div>' +
+      '<div class="progress mb-2" style="height:8px"><div class="progress-bar bg-primary" style="width:' + needsPct + '%"></div></div>' +
+    '</div>' +
+    '<div class="mb-2">' +
+      '<div class="d-flex justify-content-between"><span>Wants (Keinginan)</span><strong>' + formatRupiah(wants) + ' (' + wantsPct + '%)</strong></div>' +
+      '<div class="progress mb-2" style="height:8px"><div class="progress-bar bg-warning" style="width:' + wantsPct + '%"></div></div>' +
+    '</div>' +
+    '<div>' +
+      '<div class="d-flex justify-content-between"><span>Saved (Tersisa)</span><strong class="text-success">' + formatRupiah(savings) + '</strong></div>' +
+    '</div>';
 }
 
 // ========== CALC ==========
@@ -464,55 +542,10 @@ function calc(txs) {
 
 async function refreshAll() {
   if (!currentMonth) return;
-  const [txs, goals] = await Promise.all([getTransactions(), getGoals()]);
+  const [txs, goals, budgets] = await Promise.all([getTransactions(), getGoals(), getBudgets()]);
   const bal = calc(txs);
 
   document.getElementById("totalBalance").textContent = formatRupiah(bal.total);
   document.getElementById("cashBalance").textContent = formatRupiah(bal.cash);
   document.getElementById("nonCashBalance").textContent = formatRupiah(bal.nonCash);
-  document.getElementById("totalExpense").textContent = formatRupiah(bal.expense);
-  document.getElementById("totalIncome").textContent = formatRupiah(bal.income);
-
-  renderTx(txs, "recentTx", 5);
-  renderTx(txs, "allTx");
-  renderGoals(goals, txs, "goalsPreview");
-  renderGoals(goals, txs, "goalsList");
-}
-
-// ========== EDIT / DELETE ==========
-function openEdit(id, name, amount) {
-  editingId = id;
-  document.getElementById("editName").value = name;
-  document.getElementById("editAmount").value = amount;
-  editModal.show();
-}
-
-async function saveEdit() {
-  if (!editingId) return;
-  const name = document.getElementById("editName").value.trim();
-  const amount = Number(document.getElementById("editAmount").value);
-  if (!name || amount <= 0) return alert("Data tidak valid");
-
-  const { error } = await client.from("transactions").update({ name, amount }).eq("id", editingId);
-  if (error) return alert(error.message);
-  editModal.hide();
-  refreshAll();
-}
-
-async function deleteTx(id) {
-  if (!confirm("Hapus transaksi ini?")) return;
-  await client.from("transactions").delete().eq("id", id);
-  refreshAll();
-}
-
-// ========== INIT ==========
-function init() {
-  loadTheme();
-  editModal = new bootstrap.Modal(document.getElementById("editModal"));
-
-  if (localStorage.getItem("keuangan_ok") === "1") {
-    showApp();
-  }
-}
-
-init();
+  document.getElementBy
