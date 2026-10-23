@@ -99,7 +99,7 @@ function showApp() {
   showView("dashboard");
 }
 
-// ========== PERIOD NAME (SUDAH DIPERBAIKI) ==========
+// ========== PERIOD ==========
 function fillYearOptions() {
   const select = document.getElementById("newYear");
   if (!select) return;
@@ -127,17 +127,14 @@ function generatePeriodName() {
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
 
-  // Kalau tanggal mulai = 1 → nama biasa
   if (startDay === 1) {
     document.getElementById("monthName").value = monthNames[month] + " " + year;
     return;
   }
 
-  // Hitung bulan & tahun akhir (lintas bulan)
   let endMonth = month;
   let endYear = year;
 
-  // Kalau endDay < startDay, berarti masuk bulan berikutnya
   if (endDay < startDay) {
     endMonth = month + 1;
     if (endMonth > 12) {
@@ -211,7 +208,7 @@ async function usePreviousBalance() {
 
   (txs || []).forEach(t => {
     const a = Number(t.amount);
-    if (t.type === "expense") {
+    if (t.type === "expense" || t.type === "saving") {
       if (t.account === "cash") cash -= a; else nonCash -= a;
     }
     if (t.type === "income") {
@@ -265,7 +262,7 @@ async function deleteMonth() {
 // ========== TRANSAKSI ==========
 function toggleTxFields() {
   const type = document.getElementById("txType").value;
-  document.getElementById("wrapCategory").classList.toggle("d-none", type === "transfer");
+  document.getElementById("wrapCategory").classList.toggle("d-none", type === "transfer" || type === "saving");
   document.getElementById("wrapAccount").classList.toggle("d-none", type === "transfer");
   document.getElementById("wrapTransfer").classList.toggle("d-none", type !== "transfer");
 }
@@ -287,6 +284,9 @@ async function addTransaction() {
     account = document.getElementById("txFrom").value;
     transfer_to = document.getElementById("txTo").value;
     if (account === transfer_to) return alert("Akun harus berbeda");
+  } else if (type === "saving") {
+    account = document.getElementById("txAccount").value;
+    category = "Tabungan";
   } else {
     account = document.getElementById("txAccount").value;
     category = document.getElementById("txCategory").value;
@@ -324,7 +324,7 @@ function renderTx(list, elId, limit = null) {
   }
 
   el.innerHTML = items.map(t => {
-    const isExp = t.type === "expense";
+    const isExp = t.type === "expense" || t.type === "saving";
     const isInc = t.type === "income";
     let sign = isExp ? "-" : (isInc ? "+" : "");
     let cls = isExp ? "expense" : (isInc ? "income" : "");
@@ -334,6 +334,8 @@ function renderTx(list, elId, limit = null) {
       const from = t.account === "cash" ? "Cash" : "Non-Cash";
       const to = t.transfer_to === "cash" ? "Cash" : "Non-Cash";
       meta = "Transfer • " + from + " → " + to;
+    } else if (t.type === "saving") {
+      meta = "Setor Tabungan • dari " + (t.account === "cash" ? "Cash" : "Non-Cash");
     } else {
       meta = (t.category || "-") + " • " + (t.account === "cash" ? "Cash" : "Non-Cash");
     }
@@ -394,8 +396,6 @@ function renderGoals(goals, txs, elId) {
   }
 
   const bal = calc(txs);
-  const openingTotal = Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash);
-  const savedThisPeriod = openingTotal + bal.income - bal.expense;
 
   el.innerHTML = goals.map(g => {
     let current = 0, pct = 0, barClass = "", label = "";
@@ -406,7 +406,7 @@ function renderGoals(goals, txs, elId) {
       barClass = current > g.target_amount ? "bg-danger" : "bg-primary";
       label = "Batas";
     } else {
-      current = Math.max(0, savedThisPeriod);
+      current = bal.saved || 0;
       pct = Math.min(100, (current / g.target_amount) * 100);
       barClass = current >= g.target_amount ? "bg-success" : "bg-warning";
       label = "Nabung";
@@ -477,22 +477,34 @@ function renderBudgets(budgets, txs) {
     const actualAmt = actual[cat] || 0;
     const sisa = budgetAmt - actualAmt;
     const pct = budgetAmt > 0 ? Math.min(100, (actualAmt / budgetAmt) * 100) : 0;
-    const isOver = actualAmt > budgetAmt && budgetAmt > 0;
+
+    let status = "-";
+    let statusClass = "text-secondary";
+    if (budgetAmt > 0) {
+      if (actualAmt > budgetAmt) {
+        status = "Over Budget";
+        statusClass = "text-danger";
+      } else if (actualAmt >= budgetAmt * 0.9) {
+        status = "Hampir Habis";
+        statusClass = "text-warning";
+      } else {
+        status = "On Track";
+        statusClass = "text-success";
+      }
+    }
 
     html +=
       '<div class="mb-3">' +
         '<div class="d-flex justify-content-between mb-1">' +
           '<strong style="font-size:14px">' + cat + '</strong>' +
-          '<small class="' + (isOver ? 'text-danger' : 'text-secondary') + '">' +
-            formatRupiah(actualAmt) + ' / ' + (budgetAmt > 0 ? formatRupiah(budgetAmt) : '-') +
-          '</small>' +
+          '<small class="' + statusClass + '">' + status + '</small>' +
         '</div>' +
-        '<div class="progress mb-1" style="height:8px">' +
-          '<div class="progress-bar ' + (isOver ? 'bg-danger' : 'bg-primary') + '" style="width:' + pct + '%"></div>' +
-        '</div>' +
-        '<div class="d-flex justify-content-between" style="font-size:12px;color:var(--bs-secondary-color)">' +
+        '<div class="d-flex justify-content-between mb-1" style="font-size:13px">' +
+          '<span>' + formatRupiah(actualAmt) + ' / ' + (budgetAmt > 0 ? formatRupiah(budgetAmt) : '-') + '</span>' +
           '<span>Sisa: ' + formatRupiah(sisa) + '</span>' +
-          '<span>' + pct.toFixed(0) + '%</span>' +
+        '</div>' +
+        '<div class="progress" style="height:8px">' +
+          '<div class="progress-bar ' + (actualAmt > budgetAmt && budgetAmt > 0 ? 'bg-danger' : 'bg-primary') + '" style="width:' + pct + '%"></div>' +
         '</div>' +
       '</div>';
   });
@@ -500,14 +512,11 @@ function renderBudgets(budgets, txs) {
   el.innerHTML = html;
 }
 
-// ========== 50/30/20 (SUDAH DIPERBAIKI) ==========
 function render503020(txs) {
   const el = document.getElementById("rule503020");
   if (!el) return;
 
   const bal = calc(txs);
-
-  // Dasar: Saldo Awal + Pemasukan
   const base = Number(currentMonth.opening_cash) + Number(currentMonth.opening_non_cash) + bal.income;
 
   if (base <= 0) {
@@ -520,8 +529,7 @@ function render503020(txs) {
   const idealSavings = base * 0.2;
 
   const needsCat = ["Makanan", "Transport", "Tagihan", "Kesehatan", "Pendidikan"];
-  let actualNeeds = 0;
-  let actualWants = 0;
+  let actualNeeds = 0, actualWants = 0;
 
   txs.forEach(t => {
     if (t.type !== "expense") return;
@@ -530,7 +538,7 @@ function render503020(txs) {
     else actualWants += amt;
   });
 
-  const actualSavings = Math.max(0, base - bal.expense);
+  const actualSavings = bal.saved || 0;
 
   const needsPct = Math.min(100, (actualNeeds / idealNeeds) * 100).toFixed(0);
   const wantsPct = Math.min(100, (actualWants / idealWants) * 100).toFixed(0);
@@ -547,7 +555,6 @@ function render503020(txs) {
       '</div>' +
       '<small class="text-secondary">' + needsPct + '% dari ideal 50%</small>' +
     '</div>' +
-
     '<div class="mb-3">' +
       '<div class="d-flex justify-content-between mb-1">' +
         '<span>Wants (Keinginan)</span>' +
@@ -558,93 +565,6 @@ function render503020(txs) {
       '</div>' +
       '<small class="text-secondary">' + wantsPct + '% dari ideal 30%</small>' +
     '</div>' +
-
     '<div>' +
       '<div class="d-flex justify-content-between mb-1">' +
-        '<span>Savings (Tabungan)</span>' +
-        '<strong class="text-success">' + formatRupiah(actualSavings) + ' / ' + formatRupiah(idealSavings) + '</strong>' +
-      '</div>' +
-      '<div class="progress mb-1" style="height:8px">' +
-        '<div class="progress-bar bg-success" style="width:' + savingsPct + '%"></div>' +
-      '</div>' +
-      '<small class="text-secondary">' + savingsPct + '% dari ideal 20%</small>' +
-    '</div>';
-}
-
-// ========== CALC ==========
-function calc(txs) {
-  let cash = Number(currentMonth.opening_cash);
-  let nonCash = Number(currentMonth.opening_non_cash);
-  let expense = 0, income = 0;
-
-  txs.forEach(t => {
-    const a = Number(t.amount);
-    if (t.type === "expense") {
-      expense += a;
-      if (t.account === "cash") cash -= a; else nonCash -= a;
-    }
-    if (t.type === "income") {
-      income += a;
-      if (t.account === "cash") cash += a; else nonCash += a;
-    }
-    if (t.type === "transfer") {
-      if (t.account === "cash" && t.transfer_to === "non_cash") { cash -= a; nonCash += a; }
-      if (t.account === "non_cash" && t.transfer_to === "cash") { nonCash -= a; cash += a; }
-    }
-  });
-  return { cash, nonCash, total: cash + nonCash, expense, income };
-}
-
-async function refreshAll() {
-  if (!currentMonth) return;
-  const [txs, goals, budgets] = await Promise.all([getTransactions(), getGoals(), getBudgets()]);
-  const bal = calc(txs);
-
-  document.getElementById("totalBalance").textContent = formatRupiah(bal.total);
-  document.getElementById("cashBalance").textContent = formatRupiah(bal.cash);
-  document.getElementById("nonCashBalance").textContent = formatRupiah(bal.nonCash);
-  document.getElementById("totalExpense").textContent = formatRupiah(bal.expense);
-  document.getElementById("totalIncome").textContent = formatRupiah(bal.income);
-
-  renderTx(txs, "recentTx", 5);
-  renderTx(txs, "allTx");
-  renderGoals(goals, txs, "goalsPreview");
-  renderGoals(goals, txs, "goalsList");
-  renderBudgets(budgets, txs);
-  render503020(txs);
-}
-
-// ========== EDIT / DELETE ==========
-function openEdit(id, name, amount) {
-  editingId = id;
-  document.getElementById("editName").value = name;
-  document.getElementById("editAmount").value = amount;
-  editModal.show();
-}
-
-async function saveEdit() {
-  if (!editingId) return;
-  const name = document.getElementById("editName").value.trim();
-  const amount = Number(document.getElementById("editAmount").value);
-  if (!name || amount <= 0) return alert("Data tidak valid");
-
-  const { error } = await client.from("transactions").update({ name, amount }).eq("id", editingId);
-  if (error) return alert(error.message);
-  editModal.hide();
-  refreshAll();
-}
-
-async function deleteTx(id) {
-  if (!confirm("Hapus transaksi ini?")) return;
-  await client.from("transactions").delete().eq("id", id);
-  refreshAll();
-}
-
-// ========== INIT ==========
-function init() {
-  loadTheme();
-  editModal = new bootstrap.Modal(document.getElementById("editModal"));
-  if (localStorage.getItem("keuangan_ok") === "1") showApp();
-}
-
-init();
+        '<span>Savings (Tabungan)</span
